@@ -1,0 +1,207 @@
+﻿@page "/"
+
+<PageTitle>Zen2-SMU-Checker</PageTitle>
+
+<InputFile OnChange="@LoadFiles" multiple />
+
+<p style="background-color:black;">
+    @((MarkupString)outputOfProcess)
+</p>
+
+@code {
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        outputOfProcess = "<samp style=\"color:#FFFFFF;\">Processing started</samp>";
+
+        using var stream = e.File.OpenReadStream(maxAllowedSize: maxInputReadSize);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+
+        (bool success, string output) = ProcessInputFile(e.File.Name, ms);
+        outputOfProcess = output;
+    }
+
+    private static readonly string[] zipFileBlacklist =
+    {
+        "/",
+        ".txt",
+        ".ini",
+        ".bat",
+        ".exe"
+    };
+
+    private string outputOfProcess { get; set; } = "<samp style=\"color:#FFFFFF;\">No file(s) processed</samp>";
+
+    private const long maxInputReadSize = 40 * 1024 * 1024; // 40 megabytes for now
+
+    private static readonly string nonBreakingSpace = "&nbsp;";
+    private static readonly char nonBreakingCharReplacement = '|';
+
+    private (bool success, string output) ProcessInputFile(string filename, Stream fileStream)
+    {
+        StringBuilder sb = new StringBuilder();
+        
+        string biosName = "";
+        byte[]? biosBytes = null;
+
+        if (filename.EndsWith(".zip"))
+        {
+            using (var zipArchive = new ZipArchive(fileStream, ZipArchiveMode.Read))
+            {
+                foreach(var zipEntry in zipArchive.Entries)
+                {
+                    if (string.IsNullOrEmpty(zipEntry.Name) || zipFileBlacklist.Any(x => zipEntry.Name.EndsWith(x)))
+                    {
+                        continue;
+                    }
+
+                    biosName = zipEntry.Name;
+
+                    using (var byteStream = zipEntry.Open())
+                    using (var memStream = new MemoryStream())
+                    {
+                        byteStream.CopyTo(memStream);
+                        biosBytes = memStream.ToArray();
+                    }
+                    break;
+                }
+            }
+
+            if (biosName is null || biosBytes is null)
+            {
+                Log(sb, $"Could not retrieve bios from {filename}\n", PrintColor.DarkRed);
+                return (success: false, output: sb.ToString());
+            }
+        }
+        else
+        {
+            biosName = filename;
+            using (var br = new BinaryReader(fileStream))
+            {
+                biosBytes = br.ReadBytes((int)fileStream.Length);
+            }
+        }
+
+        string versionStr = "";
+        var agesaVersion = SearchPattern(biosBytes, "3D 9B 25 70 41 47 45 53 41", 0xD).FirstOrDefault();
+        if (agesaVersion != 0)
+        {
+            var buf = new byte[255];
+            Array.Copy(biosBytes, agesaVersion, buf, 0, buf.Length);
+
+            versionStr = Encoding.UTF8.GetString(buf);
+            if (versionStr.Contains('\0'))
+            {
+                versionStr = versionStr.Substring(0, versionStr.IndexOf('\0'));
+            }   
+        }
+        else
+        {
+            Console.Write(Environment.NewLine);
+        }
+
+        Log(sb, $"Scanning: {biosName} ({BytesToKB(biosBytes.Length).ToString("N0")} KB) {versionStr}");
+
+        var smuMods = SearchPattern(biosBytes, "24 50 53 31 00 00", -0x10);
+        if (smuMods.Any())
+        {
+            foreach (var smuOffset in smuMods)
+            {
+                var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
+                var smuVer = $"{biosBytes[smuOffset + 0x62]}.{biosBytes[smuOffset + 0x61]}.{biosBytes[smuOffset + 0x60]}";
+
+                Log(sb, $"   {smuVer} ({BytesToKB(smuLen).ToString("N0").PadLeft(3, nonBreakingCharReplacement)} KB) " +
+                    $"[{smuOffset.ToString("X").PadLeft(8, '0')} - {(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", PrintColor.DarkGreen);
+            }
+        }
+        else
+        {
+            Log(sb, "Could not find any smu modules", PrintColor.DarkRed);
+        }
+
+        return (success: true, output: sb.ToString());
+    }
+
+    private static double BytesToKB(int bytes)
+    {
+        return bytes / 1024d;
+    }
+
+    private static void Log(StringBuilder sb, string message, PrintColor color = PrintColor.White)
+    {
+        string colorHtml = PrintColors.Colors[color];
+
+        message = message.Replace(nonBreakingCharReplacement.ToString(), nonBreakingSpace);
+
+        sb.Append($"<samp style=\"color:{colorHtml};\">");
+        sb.AppendLine($"{message}</samp>");
+        sb.AppendLine("<br>");
+    }
+
+    private static int[] CreateMatchingsTable((byte, bool)[] patternTuple)
+    {
+        var skipTable = new int[256];
+        var wildcards = patternTuple.Select(x => x.Item2).ToArray();
+        var lastIndex = patternTuple.Length - 1;
+
+        var diff = lastIndex - Math.Max(Array.LastIndexOf(wildcards, false), 0);
+        if (diff == 0)
+        {
+            diff = 1;
+        }
+
+        for (var i = 0; i < skipTable.Length; i++)
+        {
+            skipTable[i] = diff;
+        }
+
+        for (var i = lastIndex - diff; i < lastIndex; i++)
+        {
+            skipTable[patternTuple[i].Item1] = lastIndex - i;
+        }
+
+        return skipTable;
+    }
+
+    private static List<int> SearchPattern(byte[] data, string pattern, int offset = 0x0)
+    {
+        if (!data.Any() || string.IsNullOrEmpty(pattern))
+        {
+            throw new ArgumentException("Data or Pattern is empty");
+        }
+
+        var patternTuple = pattern.Split(' ')
+            .Select(hex => hex.Contains('?')
+                ? (byte.MinValue, false)
+                : (Convert.ToByte(hex, 16), true))
+            .ToArray();
+
+        if (!patternTuple.Any())
+        {
+            throw new Exception("Failed to parse Pattern");
+        }
+
+        if (data.Length < pattern.Length)
+        {
+            throw new ArgumentException("Data cannot be smaller than the Pattern");
+        }
+
+        var lastPatternIndex = patternTuple.Length - 1;
+        var skipTable = CreateMatchingsTable(patternTuple);
+        var adressList = new List<int>();
+
+        for (var i = 0; i <= data.Length - patternTuple.Length; i += Math.Max(skipTable[data[i + lastPatternIndex] & 0xFF], 1))
+        {
+            for (var j = lastPatternIndex; !patternTuple[j].Item2 || data[i + j] == patternTuple[j].Item1; --j)
+            {
+                if (j == 0)
+                {
+                    adressList.Add(i + offset);
+                    break;
+                }
+            }
+        }
+
+        return adressList;
+    }
+}
