@@ -4,7 +4,7 @@
 
 ## Web link
 
-Not there yet
+[zen2-smu-checker-blazor.raiha.rocks](https://zen2-smu-checker-blazor.raiha.rocks/)
 
 ## Requirements (use)
 
