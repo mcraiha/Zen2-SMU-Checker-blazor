@@ -28,4 +28,4 @@ and content should be in **bin\Release\net6.0\publish\wwwroot** folder.
 
 ## Licenses
 
-All code files (*.cs, *.razor) and HTML files (*.html) are under [MIT](https://opensource.org/licenses/MIT) license, because original Zen2-SMU-Checker uses that license
+All code files (*.cs, *.razor) and HTML files (*.html) are under [MIT](https://opensource.org/licenses/MIT) license, because original Zen2-SMU-Checker and [MVP.css](https://github.com/andybrewer/mvp/) use that license
