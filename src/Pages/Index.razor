@@ -13,12 +13,29 @@
     {
         outputOfProcess = "<samp style=\"color:#FFFFFF;\">Processing started</samp>";
 
-        using var stream = e.File.OpenReadStream(maxAllowedSize: maxInputReadSize);
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
+        if (e.FileCount == 1)
+        {
+            using var stream = e.File.OpenReadStream(maxAllowedSize: maxInputReadSize);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
 
-        (bool success, string output) = ProcessInputFile(e.File.Name, ms);
-        outputOfProcess = output;
+            (bool success, string output) = ProcessInputFile(e.File.Name, ms);
+            outputOfProcess = output;
+        }
+        else if (e.FileCount > 1)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (IBrowserFile browserFile in e.GetMultipleFiles())
+            {
+                using var stream = browserFile.OpenReadStream(maxAllowedSize: maxInputReadSize);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+
+                (bool success, string output) = ProcessInputFile(browserFile.Name, ms);
+                sb.AppendLine(output);
+            }
+            outputOfProcess = sb.ToString();  
+        }
     }
 
     private static readonly string[] zipFileBlacklist =
