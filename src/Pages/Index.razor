@@ -1,6 +1,6 @@
 ﻿@page "/"
 
-<PageTitle>Zen2-SMU-Checker</PageTitle>
+<PageTitle>Zen2-SMU-Checker v1.2.0.8</PageTitle>
 
 <InputFile OnChange="@LoadFiles" multiple />
 
@@ -11,7 +11,7 @@
 @code {
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        outputOfProcess = "<samp style=\"color:#FFFFFF;\">Processing started</samp>";
+        outputOfProcess = "<samp style=\"color:#FFFFFF;\">Processing started (this might take up to 30 seconds)</samp>";
 
         if (e.FileCount == 1)
         {
@@ -52,11 +52,13 @@
     private const long maxInputReadSize = 40 * 1024 * 1024; // 40 megabytes for now
 
     private static readonly string nonBreakingSpace = "&nbsp;";
-    private static readonly char nonBreakingCharReplacement = '|';
+    private static readonly char nonBreakingCharReplacement = ' ';
 
     private (bool success, string output) ProcessInputFile(string filename, Stream fileStream)
     {
         StringBuilder sb = new StringBuilder();
+
+        Log(sb, "                          U E F I   I N F O                            ", PrintColor.White, PrintColor.DarkBlue);
         
         string biosName = "";
         byte[]? biosBytes = null;
@@ -99,6 +101,9 @@
             }
         }
 
+        Log(sb, $"   File:  {biosName}");
+        Log(sb, $"   Size:  {BytesToKB(biosBytes.Length).ToString("N0")}");
+
         string versionStr = "";
         var agesaVersion = SearchPattern(biosBytes, "3D 9B 25 70 41 47 45 53 41", 0xD).FirstOrDefault();
         if (agesaVersion != 0)
@@ -110,31 +115,235 @@
             if (versionStr.Contains('\0'))
             {
                 versionStr = versionStr.Substring(0, versionStr.IndexOf('\0'));
-            }   
-        }
-        else
-        {
-            Console.Write(Environment.NewLine);
+            }
+
+            Log(sb, $"   AGESA: {versionStr}");
         }
 
-        Log(sb, $"Scanning: {biosName} ({BytesToKB(biosBytes.Length).ToString("N0")} KB) {versionStr}");
-
-        var smuMods = SearchPattern(biosBytes, "24 50 53 31 00 00", -0x10);
-        if (smuMods.Any())
+        List<int> x570ChipsetSMUs = SearchPattern(biosBytes, "2F 00 FF FF FF FF 00", -98);
+        if (x570ChipsetSMUs.Any())
         {
-            foreach (var smuOffset in smuMods)
+            foreach (int num in x570ChipsetSMUs)
             {
-                var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
-                var smuVer = $"{biosBytes[smuOffset + 0x62]}.{biosBytes[smuOffset + 0x61]}.{biosBytes[smuOffset + 0x60]}";
-
-                Log(sb, $"   {smuVer} ({BytesToKB(smuLen).ToString("N0").PadLeft(3, nonBreakingCharReplacement)} KB) " +
-                    $"[{smuOffset.ToString("X").PadLeft(8, '0')} - {(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", PrintColor.DarkGreen);
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+                Log(sb, $"   X570 Chipset SMU:     {version}     ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB) ", PrintColor.Gray);
             }
         }
         else
         {
-            Log(sb, "Could not find any smu modules", PrintColor.DarkRed);
+            List<int> chipsetVersions = SearchPattern(biosBytes, "5F 50 54 5F");
+            if (chipsetVersions.Any())
+            {
+                foreach (int num in chipsetVersions)
+                {
+                    int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 4);
+
+                    string yearAndMonth = "";
+                    for (int startIndex = num + 140; startIndex < num + 142; ++startIndex)
+                        yearAndMonth = yearAndMonth + BitConverter.ToString(biosBytes, startIndex, 1) + ".";
+
+                    string day = "";
+                    for (int startIndex = num + 142; startIndex < num + 143; ++startIndex)
+                        day += BitConverter.ToString(biosBytes, startIndex, 1);
+
+                    string firmware = "FW_";
+                    for (int index = num + 147; index < num + 152; ++index)
+                        firmware += Encoding.UTF8.GetString(biosBytes, index, 1);
+
+                    string versionMajor = "";
+                    for (int startIndex = num + 143; startIndex < num + 145; ++startIndex)
+                        versionMajor = versionMajor + BitConverter.ToString(biosBytes, startIndex, 1) + ".";
+
+                    string versionMinor = "";
+                    for (int startIndex = num + 145; startIndex < num + 146; ++startIndex)
+                        versionMinor += BitConverter.ToString(biosBytes, startIndex, 1);
+
+                    Log(sb, $"   Chipset Version/FW:   {versionMajor}{versionMinor} | {firmware} | 20{yearAndMonth}{day} | ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)");
+                }
+            }
         }
+
+
+        Log(sb, "                 AMD RYZEN 1st and 2nd CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
+
+
+        // Summit ridge
+        List<int> summitRidge = SearchPattern(biosBytes, "01 00 00 00 00 00 00 00 00 00 00 ? 19 00 00 00 00", -86);
+
+        if (summitRidge.Any())
+        {
+            foreach (int num in summitRidge)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Summit Ridge   1x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Summit Ridge SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Pinnacle Ridge
+        List<int> pinnacleRidge = SearchPattern(biosBytes, "01 00 00 00 00 00 00 00 00 00 00 ? 2B 00 00 00 00", -86);
+
+        if (pinnacleRidge.Any())
+        {
+            foreach (int num in pinnacleRidge)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Pinnacle Ridge 2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Pinnacle Ridge SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Raven Ridge
+        List<int> ravenRidge = SearchPattern(biosBytes, "1E 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF 03", -6);
+
+        if (ravenRidge.Any())
+        {
+            foreach (int num in ravenRidge)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge    2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Raven Ridge SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Raven Ridge 2
+        List<int> ravenRidge2 = SearchPattern(biosBytes, "25 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FF 03", -6);
+
+        if (ravenRidge2.Any())
+        {
+            foreach (int num in ravenRidge2)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge 2  30x0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Raven Ridge 2 SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Picasso
+        List<int> picasso = SearchPattern(biosBytes, "1E 04 00 00 00 00 00 00 00 00 00 00 00 00 00 FF 03", -6);
+
+        if (picasso.Any())
+        {
+            foreach (int num in picasso)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 3]}.{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
+
+                Log(sb, $"   {version}  ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Picasso        3x00 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Picasso SMU modules", PrintColor.DarkRed);
+        }
+
+
+        Log(sb, "                 AMD RYZEN 3rd and 4th CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
+
+
+        // Matisse
+        List<int> matisse = SearchPattern(biosBytes, "2E 00 FF FF FF FF 00", -98);
+
+        if (matisse.Any())
+        {
+            foreach (int num in matisse)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Matisse (MTS) 3xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Matisse SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Renoir
+        List<int> renoir = SearchPattern(biosBytes, "37 00 FF FF FF FF 00", -98);
+
+        if (renoir.Any())
+        {
+            foreach (int num in renoir)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Renoir  (RN)  4xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Renoir SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Vermeer
+        List<int> vermeer = SearchPattern(biosBytes, "38 00 FF FF FF FF 00", -98);
+
+        if (vermeer.Any())
+        {
+            foreach (int num in vermeer)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Vermeer (VMR) 5xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Vermeer SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Cezanne
+        List<int> cezanne = SearchPattern(biosBytes, "01 00 00 00 00 00 ? 40 00 FF FF FF FF", -91);
+
+        if (cezanne.Any())
+        {
+            foreach (int num in cezanne)
+            {
+                int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
+                string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
+
+                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Cezanne (CZN) 5xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+            }
+        }
+        else
+        {
+            Log(sb, $"   Could not find any Cezanne SMU modules", PrintColor.DarkRed);
+        }
+
+
+        // Credits
+        Log(sb, "              Credits to RaINi, Reous and PatrickSchur                 ", PrintColor.Black, PrintColor.DarkBlue);
 
         return (success: true, output: sb.ToString());
     }
@@ -144,13 +353,14 @@
         return bytes / 1024d;
     }
 
-    private static void Log(StringBuilder sb, string message, PrintColor color = PrintColor.White)
+    private static void Log(StringBuilder sb, string message, PrintColor foregroundColor = PrintColor.White, PrintColor backgroundColor = PrintColor.Black)
     {
-        string colorHtml = PrintColors.Colors[color];
+        string foregroundColorHtml = PrintColors.Colors[foregroundColor];
+        string backgroundColorHtml = PrintColors.Colors[backgroundColor];
 
         message = message.Replace(nonBreakingCharReplacement.ToString(), nonBreakingSpace);
 
-        sb.Append($"<samp style=\"color:{colorHtml};\">");
+        sb.Append($"<samp style=\"color:{foregroundColorHtml}; background-color:{backgroundColorHtml};\">");
         sb.AppendLine($"{message}</samp>");
         sb.AppendLine("<br>");
     }
@@ -182,9 +392,14 @@
 
     private static List<int> SearchPattern(byte[] data, string pattern, int offset = 0x0)
     {
-        if (!data.Any() || string.IsNullOrEmpty(pattern))
+        if (!data.Any())
         {
-            throw new ArgumentException("Data or Pattern is empty");
+            throw new ArgumentException("Data is empty");
+        }
+
+        if (string.IsNullOrEmpty(pattern))
+        {
+            throw new ArgumentException("Pattern is empty");
         }
 
         var patternTuple = pattern.Split(' ')
