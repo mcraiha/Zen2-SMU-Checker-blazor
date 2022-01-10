@@ -6,6 +6,10 @@
 
 [zen2-smu-checker-blazor.raiha.rocks](https://zen2-smu-checker-blazor.raiha.rocks/)
 
+## Versions
+
+Default URL points to latest version. v1.0.0.0 can be found from https://zen2-smu-checker-blazor.raiha.rocks/old
+
 ## Requirements (use)
 
 You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-6.0)
