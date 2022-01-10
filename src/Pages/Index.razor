@@ -54,7 +54,7 @@
     private static readonly string nonBreakingSpace = "&nbsp;";
     private static readonly char nonBreakingCharReplacement = ' ';
 
-    private (bool success, string output) ProcessInputFile(string filename, Stream fileStream)
+    private (bool success, string output) ProcessInputFile(string filename, MemoryStream memoryStream)
     {
         StringBuilder sb = new StringBuilder();
 
@@ -65,7 +65,7 @@
 
         if (filename.EndsWith(".zip"))
         {
-            using (var zipArchive = new ZipArchive(fileStream, ZipArchiveMode.Read))
+            using (var zipArchive = new ZipArchive(memoryStream, ZipArchiveMode.Read))
             {
                 foreach(var zipEntry in zipArchive.Entries)
                 {
@@ -95,10 +95,7 @@
         else
         {
             biosName = filename;
-            using (var br = new BinaryReader(fileStream))
-            {
-                biosBytes = br.ReadBytes((int)fileStream.Length);
-            }
+            biosBytes = memoryStream.ToArray();
         }
 
         Log(sb, $"   File:  {biosName}");
