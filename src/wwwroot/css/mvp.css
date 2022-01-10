@@ -64,14 +64,14 @@ header,
 main {
     margin: 0 auto;
     max-width: var(--width-content);
-    padding: 3rem 1rem;
+    padding: 0.1rem 0.1rem;
 }
 
 hr {
     background-color: var(--color-bg-secondary);
     border: none;
     height: 1px;
-    margin: 4rem 0;
+    margin: 0.5rem 0;
     width: 100%;
 }
 
@@ -204,7 +204,7 @@ samp {
 }
 
 details {
-    margin: 1.3rem 0;
+    margin: 0.5rem 0;
 }
 
 details summary {
