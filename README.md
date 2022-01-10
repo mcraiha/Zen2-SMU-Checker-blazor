@@ -15,6 +15,7 @@ Default URL points to latest version. v1.0.0.0 can be found from https://zen2-sm
 You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-6.0)
 
 ## How to run / develop
+
 Move to [src](src) folder and the run
 ```
 dotnet run
@@ -23,12 +24,17 @@ dotnet run
 And then you can open http://localhost:5092 in your browser
 
 ## How to publish
+
 Move to [src](src) folder and the run
 ```
 dotnet publish -c Release
 ```
   
 and content should be in **bin\Release\net6.0\publish\wwwroot** folder.
+
+## Credits
+
+[RaINi](https://github.com/LeagueRaINi), Reous and [PatrickSchur](https://github.com/patrickschur) for creating the command-line tool.
 
 ## Licenses
 
