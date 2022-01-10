@@ -1,3 +1,8 @@
+## Version 0.9.4 (released 2022-01-10)
+- Fix bug with non zipped input
+- More info to index.html
+- Reduce layout whitespace
+
 ## Version 0.9.3 (released 2022-01-10)
 - Implement CLI tool v1.2.0.8 features
 
