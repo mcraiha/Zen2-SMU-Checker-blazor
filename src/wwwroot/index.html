@@ -24,6 +24,7 @@
             </details>
         </div>
         <div id="app">Loading...</div>
+        <div id="canvasParent"><canvas id="myCanvas" hidden></canvas></div>
     </main>
 
     <footer>
@@ -36,6 +37,44 @@
     </footer>
 
     <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        window.drawCanvasCommands = (commands) => {
+            const canvas = document.getElementById("myCanvas");
+            canvas.hidden = false;
+
+            const ctx = canvas.getContext("2d");
+            const fontSize = 12;
+            ctx.font = `${fontSize}px monospace`;
+            ctx.textAlign = "left";
+
+            const textEntriesCount = commands.length / 3;
+
+            const findLongestString = (a, b) => a.length > b.length ? a : b;
+            const longestString = commands.reduce(findLongestString, '');
+ 
+            const metrics = ctx.measureText(longestString);
+            const width = metrics.width;
+            const fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent
+
+            canvas.width = width;
+            canvas.height = fontHeight * textEntriesCount;
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = `${fontSize}px monospace`;      
+
+            let x = 0;
+            let y = fontHeight;
+            for (let i = 0; i < commands.length; i += 3)
+            {
+                ctx.fillStyle = commands[i + 2];
+                ctx.fillText('█'.repeat(commands[i].length), x, y);
+                ctx.fillStyle = commands[i + 1];
+                ctx.fillText(commands[i], x, y);
+                y += fontSize;
+            } 
+        };
+      </script>
 </body>
 
 </html>

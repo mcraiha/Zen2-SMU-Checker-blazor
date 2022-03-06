@@ -1,17 +1,23 @@
 ﻿@page "/"
+@inject IJSRuntime JS
 
 <PageTitle>Zen2-SMU-Checker v1.2.0.8</PageTitle>
 
 <InputFile OnChange="@LoadFiles" multiple />
 
 <p style="background-color:black;">
-    @((MarkupString)outputOfProcess)
+    @((MarkupString)htmlOutputOfProcess)
 </p>
+
+@if (canvasOutputOfProcess.Length > 0)
+{
+    <a @onclick="ShowCanvas">Show as image</a>
+}
 
 @code {
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
-        outputOfProcess = "<samp style=\"color:#FFFFFF;\">Processing started (this might take up to 30 seconds)</samp>";
+        htmlOutputOfProcess = "<samp style=\"color:#FFFFFF;\">Processing started (this might take up to 30 seconds)</samp>";
 
         if (e.FileCount == 1)
         {
@@ -19,8 +25,9 @@
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
 
-            (bool success, string output) = ProcessInputFile(e.File.Name, ms);
-            outputOfProcess = output;
+            (bool success, string htmlOutput, string[] canvasCommands) = ProcessInputFile(e.File.Name, ms);
+            htmlOutputOfProcess = htmlOutput;
+            canvasOutputOfProcess = canvasCommands;
         }
         else if (e.FileCount > 1)
         {
@@ -31,10 +38,10 @@
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
 
-                (bool success, string output) = ProcessInputFile(browserFile.Name, ms);
-                sb.AppendLine(output);
+                (bool success, string htmlOutput, string[] canvasCommands) = ProcessInputFile(browserFile.Name, ms);
+                sb.AppendLine(htmlOutput);
             }
-            outputOfProcess = sb.ToString();  
+            htmlOutputOfProcess = sb.ToString();  
         }
     }
 
@@ -47,18 +54,26 @@
         ".exe"
     };
 
-    private string outputOfProcess { get; set; } = "<samp style=\"color:#FFFFFF;\">No file(s) processed</samp>";
+    private string htmlOutputOfProcess { get; set; } = "<samp style=\"color:#FFFFFF;\">No file(s) processed</samp>";
+
+    private string[] canvasOutputOfProcess { get; set; } = new string[0];
 
     private const long maxInputReadSize = 40 * 1024 * 1024; // 40 megabytes for now
 
     private static readonly string nonBreakingSpace = "&nbsp;";
     private static readonly char nonBreakingCharReplacement = ' ';
 
-    private (bool success, string output) ProcessInputFile(string filename, MemoryStream memoryStream)
+    private async Task ShowCanvas()
+    {
+        await JS.InvokeVoidAsync("drawCanvasCommands", (object)canvasOutputOfProcess);
+    }
+
+    private (bool success, string htmlOutput, string[] canvasCommands) ProcessInputFile(string filename, MemoryStream memoryStream)
     {
         StringBuilder sb = new StringBuilder();
+        List<(string, PrintColor, PrintColor)> cc = new List<(string, PrintColor, PrintColor)>();
 
-        Log(sb, "                          U E F I   I N F O                            ", PrintColor.White, PrintColor.DarkBlue);
+        Log(sb, cc, "                          U E F I   I N F O                            ", PrintColor.White, PrintColor.DarkBlue);
         
         string biosName = "";
         byte[]? biosBytes = null;
@@ -88,8 +103,8 @@
 
             if (biosName is null || biosBytes is null)
             {
-                Log(sb, $"Could not retrieve bios from {filename}\n", PrintColor.DarkRed);
-                return (success: false, output: sb.ToString());
+                Log(sb, cc, $"Could not retrieve bios from {filename}\n", PrintColor.DarkRed);
+                return (success: false, htmlOutput: sb.ToString(), canvasCommands: CanvasCommandsToArray(cc));
             }
         }
         else
@@ -98,8 +113,8 @@
             biosBytes = memoryStream.ToArray();
         }
 
-        Log(sb, $"   File:  {biosName}");
-        Log(sb, $"   Size:  {BytesToKB(biosBytes.Length).ToString("N0")}");
+        Log(sb, cc, $"   File:  {biosName}");
+        Log(sb, cc, $"   Size:  {BytesToKB(biosBytes.Length).ToString("N0")}");
 
         string versionStr = "";
         var agesaVersion = SearchPattern(biosBytes, "3D 9B 25 70 41 47 45 53 41", 0xD).FirstOrDefault();
@@ -114,7 +129,7 @@
                 versionStr = versionStr.Substring(0, versionStr.IndexOf('\0'));
             }
 
-            Log(sb, $"   AGESA: {versionStr}");
+            Log(sb, cc, $"   AGESA: {versionStr}");
         }
 
         List<int> x570ChipsetSMUs = SearchPattern(biosBytes, "2F 00 FF FF FF FF 00", -98);
@@ -124,7 +139,7 @@
             {
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
-                Log(sb, $"   X570 Chipset SMU:     {version}     ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB) ", PrintColor.Gray);
+                Log(sb, cc, $"   X570 Chipset SMU:     {version}     ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB) ", PrintColor.Gray);
             }
         }
         else
@@ -156,13 +171,13 @@
                     for (int startIndex = num + 145; startIndex < num + 146; ++startIndex)
                         versionMinor += BitConverter.ToString(biosBytes, startIndex, 1);
 
-                    Log(sb, $"   Chipset Version/FW:   {versionMajor}{versionMinor} | {firmware} | 20{yearAndMonth}{day} | ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)");
+                    Log(sb, cc, $"   Chipset Version/FW:   {versionMajor}{versionMinor} | {firmware} | 20{yearAndMonth}{day} | ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)");
                 }
             }
         }
 
 
-        Log(sb, "                 AMD RYZEN 1st and 2nd CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
+        Log(sb, cc, "                 AMD RYZEN 1st and 2nd CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
 
 
         // Summit ridge
@@ -175,12 +190,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Summit Ridge   1x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Summit Ridge   1x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Summit Ridge SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Summit Ridge SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -194,12 +209,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Pinnacle Ridge 2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Pinnacle Ridge 2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Pinnacle Ridge SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Pinnacle Ridge SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -213,12 +228,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge    2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge    2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Raven Ridge SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Raven Ridge SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -232,12 +247,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge 2  30x0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge 2  30x0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Raven Ridge 2 SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Raven Ridge 2 SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -251,16 +266,16 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 3]}.{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
 
-                Log(sb, $"   {version}  ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Picasso        3x00 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}  ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Picasso        3x00 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Picasso SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Picasso SMU modules", PrintColor.DarkRed);
         }
 
 
-        Log(sb, "                 AMD RYZEN 3rd and 4th CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
+        Log(sb, cc, "                 AMD RYZEN 3rd and 4th CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
 
 
         // Matisse
@@ -273,12 +288,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Matisse (MTS) 3xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Matisse (MTS) 3xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Matisse SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Matisse SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -292,12 +307,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Renoir  (RN)  4xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Renoir  (RN)  4xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Renoir SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Renoir SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -311,12 +326,12 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Vermeer (VMR) 5xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Vermeer (VMR) 5xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Vermeer SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Vermeer SMU modules", PrintColor.DarkRed);
         }
 
 
@@ -330,19 +345,19 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Cezanne (CZN) 5xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Cezanne (CZN) 5xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
         {
-            Log(sb, $"   Could not find any Cezanne SMU modules", PrintColor.DarkRed);
+            Log(sb, cc, $"   Could not find any Cezanne SMU modules", PrintColor.DarkRed);
         }
 
 
         // Credits
-        Log(sb, "              Credits to RaINi, Reous and PatrickSchur                 ", PrintColor.Black, PrintColor.DarkBlue);
+        Log(sb, cc, "              Credits to RaINi, Reous and PatrickSchur                 ", PrintColor.Black, PrintColor.DarkBlue);
 
-        return (success: true, output: sb.ToString());
+        return (success: true, htmlOutput: sb.ToString(), canvasCommands: CanvasCommandsToArray(cc));
     }
 
     private static double BytesToKB(int bytes)
@@ -350,7 +365,13 @@
         return bytes / 1024d;
     }
 
-    private static void Log(StringBuilder sb, string message, PrintColor foregroundColor = PrintColor.White, PrintColor backgroundColor = PrintColor.Black)
+    private static void Log(StringBuilder sbHTML, List<(string, PrintColor, PrintColor)> canvasCommands, string message, PrintColor foregroundColor = PrintColor.White, PrintColor backgroundColor = PrintColor.Black)
+    {
+        LogHTML(sbHTML, message, foregroundColor, backgroundColor);
+        LogCanvas(canvasCommands, message, foregroundColor, backgroundColor);
+    }
+
+    private static void LogHTML(StringBuilder sb, string message, PrintColor foregroundColor = PrintColor.White, PrintColor backgroundColor = PrintColor.Black)
     {
         string foregroundColorHtml = PrintColors.Colors[foregroundColor];
         string backgroundColorHtml = PrintColors.Colors[backgroundColor];
@@ -360,6 +381,29 @@
         sb.Append($"<samp style=\"color:{foregroundColorHtml}; background-color:{backgroundColorHtml};\">");
         sb.AppendLine($"{message}</samp>");
         sb.AppendLine("<br>");
+    }
+
+    private static void LogCanvas(List<(string, PrintColor, PrintColor)> canvasCommands, string message, PrintColor foregroundColor = PrintColor.White, PrintColor backgroundColor = PrintColor.Black)
+    {
+        canvasCommands.Add((message, foregroundColor, backgroundColor));
+    }
+
+    private static string[] CanvasCommandsToArray(List<(string, PrintColor, PrintColor)> canvasCommands)
+    {
+        string[] commands = new string[canvasCommands.Count * 3];
+
+        int runningIndex = 0;
+        foreach ((string text, PrintColor foregroundColor, PrintColor backgroundColor) in canvasCommands)
+        {
+            commands[runningIndex] = text;
+            runningIndex++;
+            commands[runningIndex] = PrintColors.Colors[foregroundColor];
+            runningIndex++;
+            commands[runningIndex] = PrintColors.Colors[backgroundColor];
+            runningIndex++;
+        }
+
+        return commands;
     }
 
     private static int[] CreateMatchingsTable((byte, bool)[] patternTuple)
