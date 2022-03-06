@@ -1,3 +1,7 @@
+## Version 0.9.5 (released 2022-03-06)
+- Add option to save info as image
+- Mention what AM4 is (wikipedia link)
+
 ## Version 0.9.4 (released 2022-01-10)
 - Fix bug with non zipped input
 - More info to index.html
