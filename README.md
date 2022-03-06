@@ -1,6 +1,6 @@
 # Zen2-SMU-Checker-blazor
 
- Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Checker)
+ Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Checker) that you can run in your browser
 
 ## Web link
 
@@ -8,7 +8,7 @@
 
 ## Versions
 
-Default URL points to latest version. v1.0.0.0 can be found from https://zen2-smu-checker-blazor.raiha.rocks/old
+Default URL points to latest version. Old v1.0.0.0 can be found from https://zen2-smu-checker-blazor.raiha.rocks/old
 
 ## Requirements (use)
 
