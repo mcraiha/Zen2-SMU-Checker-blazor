@@ -74,7 +74,16 @@
                 y += fontSize;
             } 
         };
-      </script>
+    </script>
+    <script>
+        window.saveAsImage = () => {
+            const link = document.createElement('a');
+            link.download = 'info.png';
+            link.href = document.getElementById("myCanvas").toDataURL();
+            link.click();
+            link.delete;
+        };
+    </script>
 </body>
 
 </html>

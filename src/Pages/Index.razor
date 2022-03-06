@@ -9,9 +9,14 @@
     @((MarkupString)htmlOutputOfProcess)
 </p>
 
-@if (canvasOutputOfProcess.Length > 0)
+@if (canvasOutputOfProcess.Length > 0 && !showingCanvas)
 {
     <a @onclick="ShowCanvas">Show as image</a>
+}
+
+@if (showingCanvas)
+{
+    <a @onclick="SaveAsImage">Save as image...</a>
 }
 
 @code {
@@ -58,6 +63,8 @@
 
     private string[] canvasOutputOfProcess { get; set; } = new string[0];
 
+    private bool showingCanvas { get; set; } = false;
+
     private const long maxInputReadSize = 40 * 1024 * 1024; // 40 megabytes for now
 
     private static readonly string nonBreakingSpace = "&nbsp;";
@@ -66,10 +73,18 @@
     private async Task ShowCanvas()
     {
         await JS.InvokeVoidAsync("drawCanvasCommands", (object)canvasOutputOfProcess);
+        showingCanvas = true;
+    }
+
+    private async Task SaveAsImage()
+    {
+        await JS.InvokeVoidAsync("saveAsImage");
     }
 
     private (bool success, string htmlOutput, string[] canvasCommands) ProcessInputFile(string filename, MemoryStream memoryStream)
     {
+        showingCanvas = false;
+
         StringBuilder sb = new StringBuilder();
         List<(string, PrintColor, PrintColor)> cc = new List<(string, PrintColor, PrintColor)>();
 
