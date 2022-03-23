@@ -1,3 +1,7 @@
+## Version 0.9.6 (released 2022-03-23)
+- Update code changes from 1.2.0.9
+- Small color update
+
 ## Version 0.9.5 (released 2022-03-06)
 - Add option to save info as image
 - Mention what AM4 is (wikipedia link)
