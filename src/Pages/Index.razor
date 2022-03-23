@@ -1,7 +1,7 @@
 ﻿@page "/"
 @inject IJSRuntime JS
 
-<PageTitle>Zen2-SMU-Checker v1.2.0.8</PageTitle>
+<PageTitle>Zen2-SMU-Checker v1.2.0.9</PageTitle>
 
 <InputFile OnChange="@LoadFiles" multiple />
 
@@ -88,7 +88,7 @@
         StringBuilder sb = new StringBuilder();
         List<(string, PrintColor, PrintColor)> cc = new List<(string, PrintColor, PrintColor)>();
 
-        Log(sb, cc, "                          U E F I   I N F O                            ", PrintColor.White, PrintColor.DarkBlue);
+        Log(sb, cc, "                           U E F I   I N F O                             ", PrintColor.White, PrintColor.DarkBlue);
         
         string biosName = "";
         byte[]? biosBytes = null;
@@ -128,8 +128,8 @@
             biosBytes = memoryStream.ToArray();
         }
 
-        Log(sb, cc, $"   File:  {biosName}");
-        Log(sb, cc, $"   Size:  {BytesToKB(biosBytes.Length).ToString("N0")}");
+        Log(sb, cc, $"    File:  {biosName}");
+        Log(sb, cc, $"    Size:  {BytesToKB(biosBytes.Length).ToString("N0")}");
 
         string versionStr = "";
         var agesaVersion = SearchPattern(biosBytes, "3D 9B 25 70 41 47 45 53 41", 0xD).FirstOrDefault();
@@ -144,7 +144,7 @@
                 versionStr = versionStr.Substring(0, versionStr.IndexOf('\0'));
             }
 
-            Log(sb, cc, $"   AGESA: {versionStr}");
+            Log(sb, cc, $"    AGESA: {versionStr}");
         }
 
         List<int> x570ChipsetSMUs = SearchPattern(biosBytes, "2F 00 FF FF FF FF 00", -98);
@@ -154,12 +154,12 @@
             {
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
-                Log(sb, cc, $"   X570 Chipset SMU:     {version}     ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB) ", PrintColor.Gray);
+                Log(sb, cc, $"    X570 Chipset SMU:     {version}         ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB) ", PrintColor.Gray);
             }
         }
         else
         {
-            List<int> chipsetVersions = SearchPattern(biosBytes, "5F 50 54 5F");
+            List<int> chipsetVersions = SearchPattern(biosBytes, "5F 50 54 5F 0C");
             if (chipsetVersions.Any())
             {
                 foreach (int num in chipsetVersions)
@@ -186,13 +186,13 @@
                     for (int startIndex = num + 145; startIndex < num + 146; ++startIndex)
                         versionMinor += BitConverter.ToString(biosBytes, startIndex, 1);
 
-                    Log(sb, cc, $"   Chipset Version/FW:   {versionMajor}{versionMinor} | {firmware} | 20{yearAndMonth}{day} | ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)");
+                    Log(sb, cc, $"    Chipset Version/FW:   {versionMajor}{versionMinor} | {firmware} | 20{yearAndMonth}{day} | ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)");
                 }
             }
         }
 
 
-        Log(sb, cc, "                 AMD RYZEN 1st and 2nd CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
+        Log(sb, cc, "                  AMD RYZEN 1st and 2nd CPU Generation                   ", PrintColor.White, PrintColor.DarkBlue);
 
 
         // Summit ridge
@@ -205,7 +205,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Summit Ridge   1x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Summit Ridge   1x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -215,7 +215,7 @@
 
 
         // Pinnacle Ridge
-        List<int> pinnacleRidge = SearchPattern(biosBytes, "01 00 00 00 00 00 00 00 00 00 00 ? 2B 00 00 00 00", -86);
+        List<int> pinnacleRidge = SearchPattern(biosBytes, "01 00 00 00 00 ? 00 00 00 00 00 ? 2B 00 00 00 00", -86);
 
         if (pinnacleRidge.Any())
         {
@@ -224,7 +224,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Pinnacle Ridge 2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Pinnacle Ridge 2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -243,7 +243,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge    2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge    2x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -262,7 +262,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge 2  30x0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Raven Ridge 2  30x0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -281,7 +281,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 3]}.{biosBytes[num + 2]}.{biosBytes[num + 1]}.{biosBytes[num]}";
 
-                Log(sb, cc, $"   {version}  ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Picasso        3x00 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"  {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Picasso        3x00 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -290,7 +290,7 @@
         }
 
 
-        Log(sb, cc, "                 AMD RYZEN 3rd and 4th CPU Generation                  ", PrintColor.White, PrintColor.DarkBlue);
+        Log(sb, cc, "                  AMD RYZEN 3rd and 4th CPU Generation                   ", PrintColor.White, PrintColor.DarkBlue);
 
 
         // Matisse
@@ -303,7 +303,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Matisse (MTS) 3xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Matisse (MTS)  3x00 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -322,7 +322,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Renoir  (RN)  4xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Renoir  (RN)   4xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -341,7 +341,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Vermeer (VMR) 5xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Vermeer (VMR)  5xx0 CPU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -360,7 +360,7 @@
                 int sizeInBytes = BitConverter.ToInt32(biosBytes, num + 108);
                 string version = $"{biosBytes[num + 98]}.{biosBytes[num + 97]}.{biosBytes[num + 96]}";
 
-                Log(sb, cc, $"   {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Cezanne (CZN) 5xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
+                Log(sb, cc, $"    {version}    ({BytesToKB(sizeInBytes).ToString("N0").PadLeft(3, ' ')}  KB)   Cezanne (CZN)  5xx0 APU   [{num.ToString("X").PadLeft(8, '0')}-{(num + sizeInBytes).ToString("X").PadLeft(8, '0')}]", PrintColor.Green);
             }
         }
         else
@@ -370,7 +370,7 @@
 
 
         // Credits
-        Log(sb, cc, "              Credits to RaINi, Reous and PatrickSchur                 ", PrintColor.Black, PrintColor.DarkBlue);
+        Log(sb, cc, "                 Credits to RaINi, Reous and PatrickSchur                ", PrintColor.Black, PrintColor.DarkBlue);
 
         return (success: true, htmlOutput: sb.ToString(), canvasCommands: CanvasCommandsToArray(cc));
     }
