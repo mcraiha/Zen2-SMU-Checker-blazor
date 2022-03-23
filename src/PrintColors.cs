@@ -24,7 +24,7 @@ public static class PrintColors
     public static readonly Dictionary<PrintColor, string> Colors = new Dictionary<PrintColor, string>()
     {
         { PrintColor.Black, "#000000" },
-        { PrintColor.DarkBlue, "#000080" },
+        { PrintColor.DarkBlue, "#0037DA" },
         { PrintColor.DarkGreen, "#008000" },
         { PrintColor.DarkCyan, "#008080" },
         { PrintColor.DarkRed, "#800000" },
