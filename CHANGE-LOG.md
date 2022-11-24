@@ -1,3 +1,6 @@
+## Version 0.9.7 (released 2022-11-24)
+- Use .NET 7
+
 ## Version 0.9.6 (released 2022-03-23)
 - Update code changes from 1.2.0.9
 - Small color update
