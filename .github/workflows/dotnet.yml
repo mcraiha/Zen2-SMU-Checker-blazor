@@ -1,0 +1,39 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET publish
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.x
+    - name: Install wasm-tools
+      run: dotnet workload install wasm-tools
+    - name: Add build info
+      run: |
+        current_date=$(date --iso-8601=minutes)
+        git_short_hash=$(git rev-parse --short HEAD)
+        echo $current_date
+        echo $git_short_hash
+        sed -i "s/{0}/$current_date/g" src/wwwroot/index.html
+        sed -i "s/{1}/$git_short_hash/g" src/wwwroot/index.html
+    - name: Publish release
+      run: dotnet publish src/Zen2-SMU-Checker.csproj -c Release
+    - name: Upload to pages
+      uses: cloudflare/wrangler-action@2.0.0
+      with:
+        apiToken: ${{ secrets.CF_API_TOKEN }}
+        accountId: ${{ secrets.CF_ACCOUNT_ID }}
+        command: pages publish src/bin/Release/net7.0/publish/wwwroot --project-name=zen2-smu-checker-blazor
+    
