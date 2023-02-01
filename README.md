@@ -1,6 +1,6 @@
 # Zen2-SMU-Checker-blazor
 
- Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Checker) that you can run in your browser
+Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Checker) that you can run in your browser to get some info about [https://en.wikipedia.org/wiki/Socket_AM4](AM4) motherboard BIOS file.
 
 ## Web link
 
@@ -39,3 +39,5 @@ and content should be in **bin\Release\net6.0\publish\wwwroot** folder.
 ## Licenses
 
 All code files (*.cs, *.razor) and HTML files (*.html) are under [MIT](https://opensource.org/licenses/MIT) license, because original Zen2-SMU-Checker and [MVP.css](https://github.com/andybrewer/mvp/) use that license
+
+Icon file is modified emoji from [Twitter Emoji](https://github.com/twitter/twemoji) (Twemoji) project. Their license is [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
