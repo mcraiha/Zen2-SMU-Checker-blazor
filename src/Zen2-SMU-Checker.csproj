@@ -8,6 +8,7 @@
     <BlazorWebAssemblyPreserveCollationData>false</BlazorWebAssemblyPreserveCollationData>
     <InvariantGlobalization>true</InvariantGlobalization>
     <RunAOTCompilation>true</RunAOTCompilation>
+    <BlazorCacheBootResources>false</BlazorCacheBootResources>
   </PropertyGroup>
 
   <ItemGroup>
