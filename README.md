@@ -1,6 +1,6 @@
 # Zen2-SMU-Checker-blazor
 
-Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Checker) that you can run in your browser to get some info about [https://en.wikipedia.org/wiki/Socket_AM4](AM4) motherboard BIOS file.
+Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Checker) that you can run in your browser to get some info about [AM4](https://en.wikipedia.org/wiki/Socket_AM4) motherboard BIOS file.
 
 ## Web link
 
