@@ -25,12 +25,21 @@ And then you can open http://localhost:5092 in your browser
 
 ## How to publish
 
+### Requirements
+
+You have to have **wasm-tools** workload installed, before you you can do publish. You can install it with following command
+```
+dotnet workload install wasm-tools
+```
+
+### Actual publish
+
 Move to [src](src) folder and the run
 ```
 dotnet publish -c Release
 ```
   
-and content should be in **bin\Release\net6.0\publish\wwwroot** folder.
+and content should be in **bin\Release\net7.0\publish\wwwroot** folder.
 
 ## Credits
 
