@@ -48,8 +48,7 @@
         </p>
     </footer>
 
-    <script src="_framework/blazor.webassembly.js"></script>
-    <!--
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
     <script type="module">
         import { BrotliDecode } from './decode.min.js';
         Blazor.start({
@@ -72,7 +71,6 @@
           }
         });
     </script>
-    -->
     <script>
         window.drawCanvasCommands = (commands) => {
             const canvas = document.getElementById("myCanvas");

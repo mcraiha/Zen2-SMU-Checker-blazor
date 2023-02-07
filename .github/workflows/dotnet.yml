@@ -30,6 +30,8 @@ jobs:
         sed -i "s/{1}/$git_short_hash/g" src/wwwroot/index.html
     - name: Publish release
       run: dotnet publish src/Zen2-SMU-Checker.csproj -c Release
+    - name: Remove .wasm file
+      run: rm src/bin/Release/net7.0/publish/wwwroot/_framework/dotnet.wasm
     - name: Upload to pages
       uses: cloudflare/wrangler-action@2.0.0
       with:
