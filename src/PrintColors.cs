@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 
 public enum PrintColor : byte
 {
@@ -21,7 +22,7 @@ public enum PrintColor : byte
 
 public static class PrintColors
 {
-    public static readonly Dictionary<PrintColor, string> Colors = new Dictionary<PrintColor, string>()
+    public static readonly FrozenDictionary<PrintColor, string> Colors = new Dictionary<PrintColor, string>()
     {
         { PrintColor.Black, "#000000" },
         { PrintColor.DarkBlue, "#0037DA" },
@@ -39,5 +40,5 @@ public static class PrintColors
         { PrintColor.Magenta, "#FF00FF" },
         { PrintColor.Yellow, "#FFFF00" },
         { PrintColor.White, "#FFFFFF" },
-    };
+    }.ToFrozenDictionary();
 }
