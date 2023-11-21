@@ -12,7 +12,7 @@ Default URL points to latest version. Old v1.0.0.0 can be found from https://zen
 
 ## Requirements (use)
 
-You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-6.0)
+You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-8.0)
 
 ## How to run / develop
 
@@ -39,7 +39,7 @@ Move to [src](src) folder and the run
 dotnet publish -c Release
 ```
   
-and content should be in **bin\Release\net7.0\publish\wwwroot** folder.
+and content should be in **bin\Release\net8.0\publish\wwwroot** folder.
 
 ## Credits
 
