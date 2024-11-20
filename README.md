@@ -6,13 +6,9 @@ Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Che
 
 [zen2-smu-checker-blazor.raiha.rocks](https://zen2-smu-checker-blazor.raiha.rocks/)
 
-## Versions
-
-Default URL points to latest version. Old v1.0.0.0 can be found from https://zen2-smu-checker-blazor.raiha.rocks/old
-
 ## Requirements (use)
 
-You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-8.0)
+You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-9.0)
 
 ## How to run / develop
 
@@ -39,7 +35,7 @@ Move to [src](src) folder and the run
 dotnet publish -c Release
 ```
   
-and content should be in **bin\Release\net8.0\publish\wwwroot** folder.
+and content should be in **bin\Release\net9.0\publish\wwwroot** folder.
 
 ## Credits
 

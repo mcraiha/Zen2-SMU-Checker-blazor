@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Install wasm-tools
       run: dotnet workload install wasm-tools
     - name: Add build info
@@ -30,13 +30,13 @@ jobs:
     - name: Publish release
       run: dotnet publish src/Zen2-SMU-Checker.csproj -c Release
     - name: Remove .wasm files
-      run: rm src/bin/Release/net8.0/publish/wwwroot/_framework/*.wasm
+      run: rm src/bin/Release/net9.0/publish/wwwroot/_framework/*.wasm
     - name: Remove .gz files
-      run: rm src/bin/Release/net8.0/publish/wwwroot/_framework/*.gz
+      run: rm src/bin/Release/net9.0/publish/wwwroot/_framework/*.gz
     - name: Upload to pages
       uses: cloudflare/wrangler-action@2.0.0
       with:
         apiToken: ${{ secrets.CF_API_TOKEN }}
         accountId: ${{ secrets.CF_ACCOUNT_ID }}
-        command: pages publish src/bin/Release/net8.0/publish/wwwroot --project-name=zen2-smu-checker-blazor
+        command: pages publish src/bin/Release/net9.0/publish/wwwroot --project-name=zen2-smu-checker-blazor
     
