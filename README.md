@@ -8,7 +8,7 @@ Blazor version of [Zen2-SMU-Checker](https://github.com/LeagueRaINi/Zen2-SMU-Che
 
 ## Requirements (use)
 
-You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-9.0)
+You have to have newish [internet browser](https://docs.microsoft.com/en-us/aspnet/core/blazor/supported-platforms?view=aspnetcore-10.0)
 
 ## How to run / develop
 
@@ -35,7 +35,7 @@ Move to [src](src) folder and the run
 dotnet publish -c Release
 ```
   
-and content should be in **bin\Release\net9.0\publish\wwwroot** folder.
+and content should be in **bin\Release\net10.0\publish\wwwroot** folder.
 
 ## Credits
 
@@ -45,4 +45,4 @@ and content should be in **bin\Release\net9.0\publish\wwwroot** folder.
 
 All code files (*.cs, *.razor) and HTML files (*.html) are under [MIT](https://opensource.org/licenses/MIT) license, because original Zen2-SMU-Checker and [MVP.css](https://github.com/andybrewer/mvp/) use that license
 
-Icon file is modified emoji from [Twitter Emoji](https://github.com/twitter/twemoji) (Twemoji) project. Their license is [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+Icon file is modified emoji from [Twemoji](https://github.com/jdecked/twemoji) project. Their license is [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
