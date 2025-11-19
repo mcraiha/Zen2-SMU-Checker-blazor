@@ -1,3 +1,6 @@
+## Version 1.0.0 (released 2025-11-19)
+- Use .NET 10
+
 ## Version 0.9.9 (released 2024-11-20)
 - Use .NET 9
 
